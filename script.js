@@ -717,4 +717,15 @@
       state.chess = new Chess();
     } catch (e) {
       showError('Failed to initialize Chess engine: ' + e.message);
-     
+     return;
+ }
+
+    // 3. Render UI components
+    buildThemes();
+    profile();
+    initEvents();
+    render();
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
