@@ -53,11 +53,7 @@
   function hide(id) { $(id).hidden = true; }
 
   function randomRoom() {
-    let result = '';
-    for (let i = 0; i < 14; i++) {
-      result += Math.floor(Math.random() * 10);
-    }
-    return result;
+    return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   function setRoomStatus(text, online = false) {
@@ -87,19 +83,16 @@
   function profile() {
     $('playerName').textContent = state.name;
     $('myName').textContent = state.name;
-    $('myAvatar').textContent = (state.name[0] || 'P').toUpperCase();
-    $('nameInput').value = state.name;
+    $('myAvatar').textContent = (state.name[0] \vert{}\vert{} 'P').toUpperCase();$('nameInput').value = state.name;
     applyTheme();
     updatePlayerLabels();
   }
 
   function updatePlayerLabels() {
     if (state.color === 'b') {
-      $('myColorLabel').textContent = 'Black';
-      $('opponentColorLabel').textContent = 'White';
+      $('myColorLabel').textContent = 'Black';$('opponentColorLabel').textContent = 'White';
     } else {
-      $('myColorLabel').textContent = 'White';
-      $('opponentColorLabel').textContent = 'Black';
+      $('myColorLabel').textContent = 'White';$('opponentColorLabel').textContent = 'Black';
     }
   }
 
@@ -126,7 +119,7 @@
   }
 
   /* =========================
-     ROOM UI
+     ROOM UI & SHARE
   ========================= */
 
   function updateRoomUI() {
@@ -134,14 +127,42 @@
     $('roomDisplay').textContent = room;
     $('headerRoom').textContent = room;
 
-    $('whiteTurn').textContent = state.color === 'w' ? 'YOU' : '';
-    $('blackTurn').textContent = state.color === 'b' ? 'YOU' : '';
+    const hasRoom = Boolean(state.room);
+    $('shareBtn').style.display = hasRoom ? 'inline-block' : 'none';
+    $('headerShareBtn').style.display = hasRoom ? 'inline-block' : 'none';
+
+    $('whiteTurn').textContent = state.color === 'w' ? 'YOU' : '';$('blackTurn').textContent = state.color === 'b' ? 'YOU' : '';
 
     updatePlayerLabels();
   }
 
+  async function shareRoom() {
+    if (!state.room) return;
+
+    const shareData = {
+      title: 'Royal Chess Online',
+      text: `Join my chess game! Room ID: ${state.room}`
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') console.error('Share failed:', err);
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(state.room);
+      setRoomStatus('Room ID copied to clipboard!');
+    } catch {
+      setRoomStatus(`Room ID: ${state.room}`);
+    }
+  }
+
   /* =========================
-     CHESS STATUS
+     CHESS STATUS & ANIMATIONS
   ========================= */
 
   function getKingSquare(color) {
@@ -194,6 +215,27 @@
     }
   }
 
+  /* Calculates offset between squares for smooth piece movement */
+  function getSquareOffset(fromSq, toSq) {
+    const fromCol = files.indexOf(fromSq[0]);
+    const fromRow = 8 - parseInt(fromSq[1], 10);
+    const toCol = files.indexOf(toSq[0]);
+    const toRow = 8 - parseInt(toSq[1], 10);
+
+    const boardWidth = $('board').clientWidth || 400;
+    const squareSize = boardWidth / 8;
+
+    let dx = (fromCol - toCol) * squareSize;
+    let dy = (fromRow - toRow) * squareSize;
+
+    if (state.flipped) {
+      dx = -dx;
+      dy = -dy;
+    }
+
+    return { dx, dy };
+  }
+
   /* =========================
      RENDER BOARD
   ========================= */
@@ -204,7 +246,7 @@
     board.classList.remove('checkmate-shake');
 
     if (state.chess.in_checkmate()) {
-      void board.offsetWidth;
+      void board.offsetWidth; // Force reflow to re-trigger animation
       board.classList.add('checkmate-shake');
     }
 
@@ -212,7 +254,7 @@
     const cols = state.flipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
     const data = state.chess.board();
 
-    const checkColor = state.chess.in_check() ? state.chess.turn() : null;
+    const checkColor = state.chess.in_check() || state.chess.in_checkmate() ? state.chess.turn() : null;
     const kingSquare = checkColor ? getKingSquare(checkColor) : null;
 
     rows.forEach(r => {
@@ -250,6 +292,15 @@
           const span = document.createElement('span');
           span.className = 'piece';
           span.textContent = symbols[piece.color][piece.type];
+
+          // Apply move animation on the arriving piece
+          if (state.lastMove && state.lastMove.to === square) {
+            const { dx, dy } = getSquareOffset(state.lastMove.from, state.lastMove.to);
+            span.style.setProperty('--dx', `${dx}px`);
+            span.style.setProperty('--dy', `${dy}px`);
+            span.classList.add('move-anim');
+          }
+
           button.appendChild(span);
         }
 
@@ -344,7 +395,7 @@
 
     state.peer.on('open', id => {
       if (state.host) {
-        state.room = id;
+        state.room = id.replace('royal-chess-', '');
         state.color = 'w';
         state.flipped = false;
         updateRoomUI();
@@ -377,7 +428,7 @@
         setRoomStatus('Room ID in use. Generating a new one...');
         createRoom();
       } else if (err.type === 'peer-unavailable') {
-        setRoomStatus('Room not found. Check the 14-digit ID.');
+        setRoomStatus('Room not found. Check the 6-digit ID.');
       } else {
         setRoomStatus('Connection error: ' + err.type);
       }
@@ -433,6 +484,7 @@
     state.host = true;
     state.room = roomId;
     state.color = 'w';
+    state.flipped = false;
     state.opponentName = 'Waiting...';
 
     $('opponentName').textContent = state.opponentName;
@@ -442,8 +494,8 @@
 
   function joinRoom() {
     const rawInput = $('roomInput').value.trim();
-    if (!rawInput) {
-      setRoomStatus('Enter a 14-digit Room ID.');
+    if (!rawInput || rawInput.length !== 6) {
+      setRoomStatus('Enter a valid 6-digit Room ID.');
       return;
     }
 
@@ -481,6 +533,7 @@
     state.host = false;
     state.room = null;
     state.color = null;
+    state.flipped = false;
     state.opponentName = 'Waiting...';
 
     $('opponentName').textContent = state.opponentName;
@@ -524,12 +577,9 @@
     bind('createBtn', createRoom);
     bind('joinBtn', joinRoom);
     bind('leaveBtn', leaveRoom);
+    bind('shareBtn', shareRoom);
+    bind('headerShareBtn', shareRoom);
     bind('roomBtn', () => $('roomInput').focus());
-
-    bind('flipBtn', () => {
-      state.flipped = !state.flipped;
-      render();
-    });
 
     bind('newGameBtn', () => {
       if (!state.connection) return;
