@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Royal Chess Online</title>
   
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="styles.css">
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -40,7 +40,10 @@
 
     <div class="identity">
       <small>Room ID</small>
-      <strong id="headerRoom">Not connected</strong>
+      <div class="header-room-row">
+        <strong id="headerRoom">Not connected</strong>
+        <button class="btn icon-btn" id="headerShareBtn" title="Share Room ID" style="display:none">🔗</button>
+      </div>
 
       <small style="margin-top:10px">Playing as</small>
       <strong id="playerName">Player</strong>
@@ -63,7 +66,10 @@
 
       <div class="room-box">
         <span class="label">Current room</span>
-        <strong id="roomDisplay">Not connected</strong>
+        <div class="room-display-row">
+          <strong id="roomDisplay">Not connected</strong>
+          <button class="btn icon-btn" id="shareBtn" title="Share Room ID" style="display:none">🔘 Share</button>
+        </div>
       </div>
 
       <div class="input-row">
@@ -106,8 +112,7 @@
       </div>
 
       <div class="input-row">
-        <button class="btn" id="flipBtn">Flip board</button>
-        <button class="btn" id="newGameBtn">New game</button>
+        <button class="btn" id="newGameBtn" style="width:100%">New game</button>
       </div>
 
       <h2>Move history</h2>
