@@ -2,7 +2,7 @@
   'use strict';
 
   /* =========================
-     HELPERS
+     HELPERS & ERROR DISPLAY
   ========================= */
 
   const $ = id => document.getElementById(id);
@@ -21,14 +21,69 @@
     ['neon', '#d8f8ff', '#3656a3']
   ];
 
+  /* Display user-facing error banners */
+  function showError(msg) {
+    console.error('[Chess Error]:', msg);
+    
+    // Check if error banner container exists, create if missing
+    let errBanner = $('errorBanner');
+    if (!errBanner) {
+      errBanner = document.createElement('div');
+      errBanner.id = 'errorBanner';
+      errBanner.style.cssText = `
+        position: fixed;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        background: #ff304f;
+        color: #ffffff;
+        padding: 12px 20px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        font-weight: bold;
+        font-size: 0.9rem;
+        max-width: 90%;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      `;
+      document.body.appendChild(errBanner);
+    }
+
+    errBanner.innerHTML = `⚠️ <span>${msg}</span>`;
+    errBanner.style.display = 'flex';
+
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      if (errBanner) errBanner.style.display = 'none';
+    }, 5000);
+  }
+
+  /* Verify external dependencies are loaded */
+  function checkDependencies() {
+    const missing = [];
+    if (typeof Chess === 'undefined') missing.push('Chess.js (game engine)');
+    if (typeof Peer === 'undefined') missing.push('PeerJS (multiplayer network)');
+
+    if (missing.length > 0) {
+      const err = `Failed to load required libraries: ${missing.join(', ')}. Check CDN script tags in index.html.`;
+      showError(err);
+      setStatus('Library Load Error', 'mate');
+      return false;
+    }
+    return true;
+  }
+
   /* =========================
      STATE
   ========================= */
 
-  const state = {
+  let state = {
     name: localStorage.getItem('chessName') || 'Player',
     theme: localStorage.getItem('chessTheme') || 'royal',
-    chess: new Chess(),
+    chess: null,
     selected: null,
     lastMove: null,
     flipped: false,
@@ -46,24 +101,33 @@
 
   function bind(id, fn) {
     const el = $(id);
-    if (el) el.addEventListener('click', fn);
+    if (el) {
+      el.addEventListener('click', fn);
+    } else {
+      console.warn(`[UI Warning]: Element #${id} not found in HTML.`);
+    }
   }
 
-  function show(id) { $(id).hidden = false; }
-  function hide(id) { $(id).hidden = true; }
+  function show(id) { if ($(id))$(id).hidden = false; }
+  function hide(id) { if ($(id))$(id).hidden = true; }
 
   function randomRoom() {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   function setRoomStatus(text, online = false) {
-    $('roomStatus').innerHTML =
-      '<span class="connection-dot ' + (online ? 'online' : '') + '"></span>' + text;
+    const el = $('roomStatus');
+    if (el) {
+      el.innerHTML = '<span class="connection-dot ' + (online ? 'online' : '') + '"></span>' + text;
+    }
   }
 
   function setStatus(text, cls = '') {
-    $('status').className = 'status ' + cls;
-    $('status').innerHTML = '<span class="label">Game</span><span>' + text + '</span>';
+    const el = $('status');
+    if (el) {
+      el.className = 'status ' + cls;
+      el.innerHTML = '<span class="label">Game</span><span>' + text + '</span>';
+    }
   }
 
   /* =========================
@@ -81,23 +145,22 @@
   }
 
   function profile() {
-    $('playerName').textContent = state.name;
-    $('myName').textContent = state.name;
-    $('myAvatar').textContent = (state.name[0] \vert{}\vert{} 'P').toUpperCase();$('nameInput').value = state.name;
+    if ($('playerName'))$('playerName').textContent = state.name;
+    if ($('myName'))$('myName').textContent = state.name;
+    if ($('myAvatar'))$('myAvatar').textContent = (state.name[0] || 'P').toUpperCase();
+    if ($('nameInput'))$('nameInput').value = state.name;
     applyTheme();
     updatePlayerLabels();
   }
 
   function updatePlayerLabels() {
-    if (state.color === 'b') {
-      $('myColorLabel').textContent = 'Black';$('opponentColorLabel').textContent = 'White';
-    } else {
-      $('myColorLabel').textContent = 'White';$('opponentColorLabel').textContent = 'Black';
-    }
+    if ($('myColorLabel'))$('myColorLabel').textContent = state.color === 'b' ? 'Black' : 'White';
+    if ($('opponentColorLabel'))$('opponentColorLabel').textContent = state.color === 'b' ? 'White' : 'Black';
   }
 
   function buildThemes() {
     const grid = $('themeGrid');
+    if (!grid) return;
     grid.innerHTML = '';
 
     themes.forEach(([key, a, b]) => {
@@ -124,20 +187,24 @@
 
   function updateRoomUI() {
     const room = state.room || 'Not connected';
-    $('roomDisplay').textContent = room;
-    $('headerRoom').textContent = room;
+    if ($('roomDisplay'))$('roomDisplay').textContent = room;
+    if ($('headerRoom'))$('headerRoom').textContent = room;
 
     const hasRoom = Boolean(state.room);
-    $('shareBtn').style.display = hasRoom ? 'inline-block' : 'none';
-    $('headerShareBtn').style.display = hasRoom ? 'inline-block' : 'none';
+    if ($('shareBtn'))$('shareBtn').style.display = hasRoom ? 'inline-block' : 'none';
+    if ($('headerShareBtn'))$('headerShareBtn').style.display = hasRoom ? 'inline-block' : 'none';
 
-    $('whiteTurn').textContent = state.color === 'w' ? 'YOU' : '';$('blackTurn').textContent = state.color === 'b' ? 'YOU' : '';
+    if ($('whiteTurn'))$('whiteTurn').textContent = state.color === 'w' ? 'YOU' : '';
+    if ($('blackTurn'))$('blackTurn').textContent = state.color === 'b' ? 'YOU' : '';
 
     updatePlayerLabels();
   }
 
   async function shareRoom() {
-    if (!state.room) return;
+    if (!state.room) {
+      showError('Create or join a room first before sharing.');
+      return;
+    }
 
     const shareData = {
       title: 'Royal Chess Online',
@@ -166,6 +233,7 @@
   ========================= */
 
   function getKingSquare(color) {
+    if (!state.chess) return null;
     const board = state.chess.board();
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 8; c++) {
@@ -179,6 +247,8 @@
   }
 
   function updateStatus() {
+    if (!state.chess) return;
+
     if (state.chess.in_checkmate()) {
       const winner = state.chess.turn() === 'w' ? 'Black' : 'White';
       setStatus('Checkmate — ' + winner + ' wins', 'mate');
@@ -215,14 +285,14 @@
     }
   }
 
-  /* Calculates offset between squares for smooth piece movement */
   function getSquareOffset(fromSq, toSq) {
     const fromCol = files.indexOf(fromSq[0]);
     const fromRow = 8 - parseInt(fromSq[1], 10);
     const toCol = files.indexOf(toSq[0]);
     const toRow = 8 - parseInt(toSq[1], 10);
 
-    const boardWidth = $('board').clientWidth || 400;
+    const boardEl = $('board');
+    const boardWidth = boardEl ? boardEl.clientWidth : 400;
     const squareSize = boardWidth / 8;
 
     let dx = (fromCol - toCol) * squareSize;
@@ -242,11 +312,13 @@
 
   function render() {
     const board = $('board');
+    if (!board || !state.chess) return;
+
     board.innerHTML = '';
     board.classList.remove('checkmate-shake');
 
     if (state.chess.in_checkmate()) {
-      void board.offsetWidth; // Force reflow to re-trigger animation
+      void board.offsetWidth;
       board.classList.add('checkmate-shake');
     }
 
@@ -293,7 +365,6 @@
           span.className = 'piece';
           span.textContent = symbols[piece.color][piece.type];
 
-          // Apply move animation on the arriving piece
           if (state.lastMove && state.lastMove.to === square) {
             const { dx, dy } = getSquareOffset(state.lastMove.from, state.lastMove.to);
             span.style.setProperty('--dx', `${dx}px`);
@@ -319,6 +390,8 @@
 
   function renderMoves() {
     const container = $('moves');
+    if (!container || !state.chess) return;
+
     container.innerHTML = '';
     const history = state.chess.history({ verbose: true });
 
@@ -346,8 +419,20 @@
   ========================= */
 
   function onSquareClick(square) {
-    if (!state.connection || state.chess.in_checkmate() || state.chess.in_draw()) return;
-    if (state.chess.turn() !== state.color) return;
+    if (!state.connection) {
+      showError('Please create or join a room to play online.');
+      return;
+    }
+
+    if (state.chess.in_checkmate() || state.chess.in_draw()) {
+      showError('Game over! Reset the match to play again.');
+      return;
+    }
+
+    if (state.chess.turn() !== state.color) {
+      showError("It's not your turn!");
+      return;
+    }
 
     const piece = state.chess.get(square);
 
@@ -377,10 +462,16 @@
   }
 
   function executeMove(moveObj) {
-    const move = state.chess.move(moveObj);
-    if (move) {
-      state.lastMove = move;
-      render();
+    try {
+      const move = state.chess.move(moveObj);
+      if (move) {
+        state.lastMove = move;
+        render();
+      } else {
+        showError('Invalid chess move.');
+      }
+    } catch (e) {
+      showError('Move error: ' + e.message);
     }
   }
 
@@ -391,7 +482,12 @@
   function initPeer(customId = null) {
     if (state.peer) state.peer.destroy();
 
-    state.peer = customId ? new Peer(customId) : new Peer();
+    try {
+      state.peer = customId ? new Peer(customId) : new Peer();
+    } catch (e) {
+      showError('Failed to initialize PeerJS networking: ' + e.message);
+      return;
+    }
 
     state.peer.on('open', id => {
       if (state.host) {
@@ -414,7 +510,7 @@
           fen: state.chess.fen()
         });
 
-        $('opponentName').textContent = state.opponentName;
+        if ($('opponentName'))$('opponentName').textContent = state.opponentName;
         setRoomStatus('Opponent connected!', true);
         render();
       } else {
@@ -428,8 +524,13 @@
         setRoomStatus('Room ID in use. Generating a new one...');
         createRoom();
       } else if (err.type === 'peer-unavailable') {
-        setRoomStatus('Room not found. Check the 6-digit ID.');
+        showError('Room not found! Double check the 6-digit Room ID.');
+        setRoomStatus('Room not found. Check the ID.');
+      } else if (err.type === 'network' || err.type === 'disconnected') {
+        showError('Network connection lost. Please check your internet connection.');
+        setRoomStatus('Network offline.');
       } else {
+        showError('Network error: ' + err.type);
         setRoomStatus('Connection error: ' + err.type);
       }
     });
@@ -440,7 +541,7 @@
       switch (data.type) {
         case 'INIT':
           state.opponentName = data.name || 'Opponent';
-          $('opponentName').textContent = state.opponentName;
+          if ($('opponentName'))$('opponentName').textContent = state.opponentName;
           if (data.fen) state.chess.load(data.fen);
           sendNetworkData({ type: 'PROFILE', name: state.name });
           render();
@@ -448,7 +549,7 @@
 
         case 'PROFILE':
           state.opponentName = data.name || 'Opponent';
-          $('opponentName').textContent = state.opponentName;
+          if ($('opponentName'))$('opponentName').textContent = state.opponentName;
           break;
 
         case 'MOVE':
@@ -465,17 +566,26 @@
     });
 
     state.connection.on('close', () => {
+      showError('Opponent disconnected from the match.');
       setRoomStatus('Opponent disconnected.');
       state.connection = null;
       state.opponentName = 'Waiting...';
-      $('opponentName').textContent = state.opponentName;
+      if ($('opponentName'))$('opponentName').textContent = state.opponentName;
       render();
+    });
+
+    state.connection.on('error', err => {
+      showError('Connection error: ' + err);
     });
   }
 
   function sendNetworkData(data) {
     if (state.connection && state.connection.open) {
-      state.connection.send(data);
+      try {
+        state.connection.send(data);
+      } catch (e) {
+        showError('Failed to send move: ' + e.message);
+      }
     }
   }
 
@@ -487,14 +597,17 @@
     state.flipped = false;
     state.opponentName = 'Waiting...';
 
-    $('opponentName').textContent = state.opponentName;
+    if ($('opponentName'))$('opponentName').textContent = state.opponentName;
     setRoomStatus('Creating room...');
     initPeer('royal-chess-' + roomId);
   }
 
   function joinRoom() {
-    const rawInput = $('roomInput').value.trim();
+    const input = $('roomInput');
+    const rawInput = input ? input.value.trim() : '';
+
     if (!rawInput || rawInput.length !== 6) {
+      showError('Please enter a valid 6-digit Room ID.');
       setRoomStatus('Enter a valid 6-digit Room ID.');
       return;
     }
@@ -505,7 +618,7 @@
     state.flipped = true;
     state.opponentName = 'Host';
 
-    $('opponentName').textContent = state.opponentName;
+    if ($('opponentName'))$('opponentName').textContent = state.opponentName;
     updateRoomUI();
 
     setRoomStatus('Connecting to room...');
@@ -536,8 +649,8 @@
     state.flipped = false;
     state.opponentName = 'Waiting...';
 
-    $('opponentName').textContent = state.opponentName;
-    $('roomInput').value = '';
+    if ($('opponentName'))$('opponentName').textContent = state.opponentName;
+    if ($('roomInput'))$('roomInput').value = '';
 
     updateRoomUI();
     setRoomStatus('Left room.');
@@ -549,12 +662,12 @@
   }
 
   /* =========================
-     EVENT LISTENERS & INIT
+     INIT
   ========================= */
 
   function initEvents() {
     bind('settingsBtn', () => {
-      $('nameInput').value = state.name;
+      if ($('nameInput'))$('nameInput').value = state.name;
       show('settingsMenu');
     });
 
@@ -563,8 +676,9 @@
     });
 
     bind('saveSettings', () => {
-      const newName = $('nameInput').value.trim() || 'Player';
-      state.name = newName;
+      const input = $('nameInput');
+      const newName = input ? input.value.trim() : 'Player';
+      state.name = newName || 'Player';
 
       localStorage.setItem('chessName', state.name);
       localStorage.setItem('chessTheme', state.theme);
@@ -579,10 +693,13 @@
     bind('leaveBtn', leaveRoom);
     bind('shareBtn', shareRoom);
     bind('headerShareBtn', shareRoom);
-    bind('roomBtn', () => $('roomInput').focus());
+    bind('roomBtn', () => { if ($('roomInput'))$('roomInput').focus(); });
 
     bind('newGameBtn', () => {
-      if (!state.connection) return;
+      if (!state.connection) {
+        showError('Join a room before resetting the game.');
+        return;
+      }
       state.chess.reset();
       state.selected = null;
       state.lastMove = null;
@@ -592,11 +709,12 @@
   }
 
   function init() {
-    buildThemes();
-    profile();
-    initEvents();
-    render();
-  }
+    // 1. Verify library load
+    if (!checkDependencies()) return;
 
-  document.addEventListener('DOMContentLoaded', init);
-})();
+    // 2. Initialize Chess instance safely
+    try {
+      state.chess = new Chess();
+    } catch (e) {
+      showError('Failed to initialize Chess engine: ' + e.message);
+     
