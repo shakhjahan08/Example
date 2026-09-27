@@ -1,116 +1,149 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Mini App Storefront</title>
-  <!-- Telegram WebApp SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    :root {
-      --bg: var(--telegram-bg-color, #ffffff);
-      --text: var(--telegram-text-color, #000000);
-      --hint: var(--telegram-hint-color, #888888);
-      --btn: var(--telegram-button-color, #2481cc);
-      --btn-text: var(--telegram-button-text-color, #ffffff);
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      margin: 0;
-      padding: 16px;
-    }
-    .grid { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
-    .card {
-      border: 1px solid rgba(0,0,0,0.1);
-      border-radius: 12px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-    }
-    .card img { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; }
-    .price { font-weight: bold; margin: 8px 0; }
-    .controls { display: flex; gap: 8px; align-items: center; }
-    button {
-      background-color: var(--btn);
-      color: var(--btn-text);
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Royal Chess Online</title>
+  
+  <link rel="stylesheet" href="styles.css">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
 <body>
 
-  <h2>🛍️ Store Catalog</h2>
-  <div class="grid" id="catalog"></div>
+<div class="app">
 
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand(); // Expand Mini App to full screen
+  <nav class="nav">
+    <div class="brand">
+      <div class="logo">♔</div>
+      <span>Royal Chess Online</span>
+    </div>
 
-    const PRODUCTS = [
-      { id: "p1", name: "Headphones", price: 49.99, img: "https://via.placeholder.com/150" },
-      { id: "p2", name: "Smart Watch", price: 89.99, img: "https://via.placeholder.com/150" },
-      { id: "p3", name: "Backpack", price: 29.99, img: "https://via.placeholder.com/150" }
-    ];
+    <div class="nav-actions">
+      <button class="btn" id="settingsBtn">⚙ Settings</button>
+      <button class="btn primary" id="roomBtn">🌐 Room</button>
+    </div>
+  </nav>
 
-    let cart = {};
+  <header class="hero">
+    <div>
+      <div class="eyebrow">Private online chess</div>
+      <h1>
+        Play chess<br>
+        <span style="color:var(--blue)">with anyone.</span>
+      </h1>
+      <p>
+        Create a private room, share the 14-digit Room ID, and play in real time from two browsers.
+      </p>
+    </div>
 
-    function renderCatalog() {
-      const container = document.getElementById("catalog");
-      container.innerHTML = PRODUCTS.map(p => `
-        <div class="card">
-          <img src="${p.img}" alt="${p.name}">
-          <h4>${p.name}</h4>
-          <div class="price">$${p.price}</div>
-          <div class="controls">
-            <button onclick="updateCart('${p.id}', -1)">-</button>
-            <span id="qty-${p.id}">${cart[p.id] ? cart[p.id].quantity : 0}</span>
-            <button onclick="updateCart('${p.id}', 1)">+</button>
-          </div>
+    <div class="identity">
+      <small>Room ID</small>
+      <strong id="headerRoom">Not connected</strong>
+
+      <small style="margin-top:10px">Playing as</small>
+      <strong id="playerName">Player</strong>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <section class="board-shell">
+      <div class="board" id="board" role="grid" aria-label="Chess board"></div>
+
+      <div class="status" id="status">
+        <span class="label">Game</span>
+        <span>Create or join a room to start</span>
+      </div>
+    </section>
+
+    <aside class="card">
+      <h2>Online room</h2>
+
+      <div class="room-box">
+        <span class="label">Current room</span>
+        <strong id="roomDisplay">Not connected</strong>
+      </div>
+
+      <div class="input-row">
+        <input
+          id="roomInput"
+          inputmode="numeric"
+          maxlength="14"
+          placeholder="14-digit Room ID"
+          autocomplete="off"
+        >
+        <button class="btn blue" id="createBtn">Create</button>
+      </div>
+
+      <button class="btn" id="joinBtn">Join room</button>
+      <button class="btn danger" id="leaveBtn">Leave room</button>
+
+      <div class="tip" id="roomStatus">
+        <span class="connection-dot"></span>
+        Create a room and share its ID with another player.
+      </div>
+
+      <h2>Players</h2>
+
+      <div class="player">
+        <div class="avatar" id="myAvatar">P</div>
+        <div class="player-info">
+          <span class="label" id="myColorLabel">White</span>
+          <strong id="myName">Player</strong>
         </div>
-      `).join('');
-    }
+        <span class="turn" id="whiteTurn"></span>
+      </div>
 
-    function updateCart(prodId, delta) {
-      const product = PRODUCTS.find(p => p.id === prodId);
-      if (!cart[prodId]) cart[prodId] = { ...product, quantity: 0 };
-      
-      cart[prodId].quantity += delta;
-      if (cart[prodId].quantity <= 0) delete cart[prodId];
+      <div class="player">
+        <div class="avatar" id="opponentAvatar" style="background:#26384b">♔</div>
+        <div class="player-info">
+          <span class="label" id="opponentColorLabel">Black</span>
+          <strong id="opponentName">Waiting...</strong>
+        </div>
+        <span class="turn" id="blackTurn"></span>
+      </div>
 
-      document.getElementById(`qty-${prodId}`).innerText = cart[prodId] ? cart[prodId].quantity : 0;
-      updateMainButton();
-    }
+      <div class="input-row">
+        <button class="btn" id="flipBtn">Flip board</button>
+        <button class="btn" id="newGameBtn">New game</button>
+      </div>
 
-    function updateMainButton() {
-      const items = Object.values(cart);
-      const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
-      const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2);
+      <h2>Move history</h2>
+      <div class="moves" id="moves"></div>
+    </aside>
 
-      if (totalCount > 0) {
-        tg.MainButton.setText(`VIEW CART (${totalCount}) • $${totalPrice}`);
-        tg.MainButton.show();
-      } else {
-        tg.MainButton.hide();
-      }
-    }
+  </main>
 
-    // Send order data back to Telegram Bot when MainButton is pressed
-    tg.MainButton.onClick(() => {
-      const orderPayload = {
-        items: Object.values(cart),
-        totalAmount: Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)
-      };
-      tg.sendData(JSON.stringify(orderPayload)); // Sends payload to python backend
-    });
+</div>
 
-    renderCatalog();
-  </script>
+<!-- SETTINGS MODAL -->
+
+<div class="modal-bg" id="settingsMenu" hidden>
+  <div class="modal">
+    <header>
+      <h2>Settings</h2>
+      <button class="btn" data-close="settingsMenu">✖</button>
+    </header>
+
+    <label>Player name</label>
+    <input id="nameInput" maxlength="24" placeholder="Enter your name" autocomplete="off">
+
+    <label>Board style</label>
+    <div class="theme-grid" id="themeGrid"></div>
+
+    <div class="tip" style="margin-top:12px">
+      Choose one of the five board styles.
+    </div>
+
+    <footer>
+      <button class="btn" data-close="settingsMenu">Cancel</button>
+      <button class="btn primary" id="saveSettings">Save changes</button>
+    </footer>
+  </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
