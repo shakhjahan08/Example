@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LuxeParfum - Onlayn Do'kon</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <!-- Navigation -->
+  <nav class="bg-slate-900 text-white sticky top-0 z-40 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-slate-900 font-bold text-xl">
+            <i class="fa-solid fa-spray-can-sparkles"></i>
+          </div>
+          <span class="font-bold text-xl tracking-wide bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent">LuxeParfum</span>
+        </div>
+        
+        <!-- Cart Button -->
+        <div class="flex items-center">
+          <button id="cartBtn" class="relative bg-slate-800 hover:bg-slate-700 text-amber-400 p-2.5 rounded-full transition">
+            <i class="fa-solid fa-shopping-bag text-lg"></i>
+            <span id="cartBadge" class="absolute -top-1 -right-1 bg-amber-500 text-slate-950 text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Banner -->
+  <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-12 px-4 text-center border-b border-amber-500/20">
+    <h1 class="text-3xl md:text-5xl font-extrabold mb-3">Musk & Amber Kolleksiyasi</h1>
+    <p class="text-amber-200/80 max-w-xl mx-auto text-sm md:text-base">Eng sara va o'ziga jalb etuvchi atirlar to'plami. O'z uslubingizni tanlang.</p>
+  </header>
+
+  <!-- Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+    <!-- Filter Bar -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div class="relative w-full md:w-80">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <input type="text" id="searchInput" placeholder="Atir nomi yoki brend..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-amber-500">
+      </div>
+      <div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0" id="categoryFilters">
+        <button data-cat="all" class="cat-btn active px-4 py-1.5 rounded-full text-sm font-medium bg-slate-900 text-white">Barchasi</button>
+        <button data-cat="Erkaklar" class="cat-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Erkaklar</button>
+        <button data-cat="Ayollar" class="cat-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Ayollar</button>
+        <button data-cat="Unisex" class="cat-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Unisex</button>
+      </div>
+    </div>
+
+    <!-- Products Grid -->
+    <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div class="col-span-full py-12 text-center text-gray-400">Yuklanmoqda...</div>
+    </div>
+  </main>
+
+  <!-- Cart Drawer -->
+  <div id="cartModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex justify-end">
+    <div class="bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
+      <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-slate-900 text-white">
+        <h3 class="font-bold text-lg"><i class="fa-solid fa-bag-shopping mr-2 text-amber-400"></i>Savat</h3>
+        <button id="closeCart" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div id="cartItems" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+      <div class="p-4 border-t border-gray-100 bg-gray-50 space-y-4">
+        <div class="flex justify-between text-lg font-bold text-slate-800">
+          <span>Jami:</span>
+          <span id="cartTotal">0 UZS</span>
+        </div>
+        <button onclick="checkout()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl transition">Buyurtma berish</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="bg-slate-900 text-slate-400 py-6 text-center text-sm border-t border-slate-800">
+    <p>&copy; 2026 LuxeParfum Onlayn Do'koni</p>
+  </footer>
+
+  <!-- Firebase Script (SDK v9) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // ⚠️ Firebase-dan olgan sozlamalaringizni shu yerga qo'ying:
+    const firebaseConfig = {
+    apiKey: "AIzaSyDYnQBdOJ5buSX0QIVYFC1dQtIaaMBfRFA",
+    authDomain: "store-e2287.firebaseapp.com",
+    projectId: "store-e2287",
+    storageBucket: "store-e2287.firebasestorage.app",
+    messagingSenderId: "964983195151",
+    appId: "1:964983195151:web:235d83eb45601cb1f4c57a"
+  };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let products = [];
+    let cart = [];
+    let currentCategory = 'all';
+    let searchQuery = '';
+
+    // Real-time listener: Firebasedagi o'zgarishlar zudlik bilan ekranda ko'rinadi
+    onSnapshot(collection(db, "products"), (snapshot) => {
+      products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderProducts();
+    });
+
+    function formatPrice(num) {
+      return Number(num).toLocaleString('uz-UZ') + ' UZS';
+    }
+
+    function renderProducts() {
+      const grid = document.getElementById('productsGrid');
+      
+      const filtered = products.filter(p => {
+        const matchCat = currentCategory === 'all' || p.category === currentCategory;
+        const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.brand.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchCat && matchSearch;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-full py-12 text-center text-gray-400">Tovarlar topilmadi</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(p => `
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group flex flex-col">
+          <div class="relative h-56 bg-gray-100 overflow-hidden">
+            <img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=600&q=80'">
+            <span class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-md text-amber-300 text-xs px-2.5 py-1 rounded-full font-medium">${p.category}</span>
+          </div>
+          <div class="p-5 flex-1 flex flex-col justify-between">
+            <div>
+              <p class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">${p.brand}</p>
+              <h3 class="font-bold text-slate-800 text-lg mb-1 line-clamp-1">${p.name}</h3>
+              <p class="text-xs text-gray-500 mb-4 line-clamp-2">${p.description || ''}</p>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-gray-50">
+              <span class="font-bold text-slate-900">${formatPrice(p.price)}</span>
+              <button onclick="addToCart('${p.id}')" class="bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 p-2.5 rounded-xl transition">
+                <i class="fa-solid fa-cart-plus"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.addToCart = function(id) {
+      const item = products.find(p => p.id === id);
+      if (!item) return;
+      
+      const existing = cart.find(c => c.id === id);
+      if (existing) {
+        existing.qty++;
+      } else {
+        cart.push({ ...item, qty: 1 });
+      }
+      updateCartUI();
+    };
+
+    function updateCartUI() {
+      const badge = document.getElementById('cartBadge');
+      const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
+      badge.textContent = totalQty;
+      badge.classList.toggle('hidden', totalQty === 0);
+
+      const itemsContainer = document.getElementById('cartItems');
+      const totalEl = document.getElementById('cartTotal');
+      
+      if (cart.length === 0) {
+        itemsContainer.innerHTML = `<p class="text-center text-gray-400 py-10">Savat bo'sh</p>`;
+        totalEl.textContent = '0 UZS';
+        return;
+      }
+
+      itemsContainer.innerHTML = cart.map(item => `
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl gap-3">
+          <img src="${item.image}" class="w-12 h-12 object-cover rounded-lg">
+          <div class="flex-1 min-w-0">
+            <h4 class="font-bold text-sm text-slate-800 truncate">${item.name}</h4>
+            <p class="text-xs text-gray-500">${formatPrice(item.price)}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="changeQty('${item.id}', -1)" class="w-6 h-6 rounded bg-gray-200 text-slate-800 text-xs">-</button>
+            <span class="text-

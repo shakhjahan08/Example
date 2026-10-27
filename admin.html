@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - LuxeParfum</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <!-- LOGIN SECTION (Agar admin tizimga kirmagan bo'lsa ko'rinadi) -->
+  <div id="loginSection" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border border-gray-100">
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 bg-amber-500 text-slate-900 rounded-full flex items-center justify-center text-2xl mx-auto mb-3 font-bold">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-800">Admin Tizimiga Kirish</h2>
+        <p class="text-sm text-gray-500 mt-1">Davom etish uchun parolingizni kiriting</p>
+      </div>
+
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Email</label>
+          <input type="email" id="loginEmail" required placeholder="admin@luxe.uz" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Parol</label>
+          <input type="password" id="loginPass" required placeholder="••••••••" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-amber-500">
+        </div>
+        <p id="loginError" class="text-xs text-red-500 hidden"></p>
+        <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl transition text-sm">Kirish</button>
+      </form>
+      <div class="text-center mt-4">
+        <a href="index.html" class="text-xs text-gray-400 hover:text-slate-700">← Do'konga qaytish</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN DASHBOARD (Faqat muvaffaqiyatli login qilinganda ko'rinadi) -->
+  <div id="adminContent" class="hidden flex-1 flex flex-col">
+    <!-- Header -->
+    <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-slate-900 font-bold text-xl">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-lg leading-none">Admin Panel</h1>
+            <span class="text-xs text-amber-400" id="userEmailTag">Xavfsiz ulanish</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="index.html" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-2 rounded-lg font-semibold text-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-store"></i> Do'kon
+          </a>
+          <button id="logoutBtn" class="bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white px-3 py-2 rounded-lg font-semibold text-xs transition">
+            <i class="fa-solid fa-right-from-bracket"></i> Chiqish
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+      <!-- Top Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-500">Jami Tovarlar</p>
+            <h2 id="statTotal" class="text-3xl font-extrabold text-slate-900 mt-1">0</h2>
+          </div>
+          <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-box"></i></div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-500">Baza Holati</p>
+            <h2 class="text-lg font-bold text-emerald-600 mt-1"><i class="fa-solid fa-cloud-check mr-1"></i> Firebase Sinxron</h2>
+          </div>
+          <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-shield-halved"></i></div>
+        </div>
+      </div>
+
+      <!-- Main Section: Form & Table -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Product Form -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
+          <h3 id="formTitle" class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-plus-circle text-amber-500"></i> Yangi Tovar Qo'shish
+          </h3>
+          <form id="productForm" class="space-y-4">
+            <input type="hidden" id="editId">
+            
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Tovar Nomi</label>
+              <input type="text" id="pName" required placeholder="Masalan: Sauvage" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Brend</label>
+              <input type="text" id="pBrand" required placeholder="Masalan: Dior" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Narxi (UZS)</label>
+                <input type="number" id="pPrice" required placeholder="1450000" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-amber-500">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Kategoriya</label>
+                <select id="pCategory" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-amber-500">
+                  <option value="Erkaklar">Erkaklar</option>
+                  <option value="Ayollar">Ayollar</option>
+                  <option value="Unisex">Unisex</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Rasm URL</label>
+              <input type="url" id="pImage" required placeholder="https://..." class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Tavsif</label>
+              <textarea id="pDesc" rows="3" placeholder="Atir haqida qisqacha..." class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-amber-500"></textarea>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+              <button type="submit" id="saveBtn" class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-xl transition text-sm">Saqlash</button>
+              <button type="button" id="cancelBtn" onclick="resetForm()" class="hidden px-4 bg-gray-200 hover:bg-gray-300 text-slate-700 font-semibold rounded-xl text-sm transition">Bekor qilish</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Products Table -->
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="font-bold text-slate-800">Mavjud Atirlar Ro'yxati</h3>
+            <span class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-lock mr-1"></i> Xavfsiz baza</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-gray-50 text-gray-500 font-medium">
+                <tr>
+                  <th class="p-4">Tovar</th>
+                  <th class="p-4">Kategoriya</th>
+                  <th class="p-4">Narxi</th>
+                  <th class="p-4 text-right">Amallar</th>
+                </tr>
+              </thead>
+              <tbody id="adminTableBody" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Firebase Script (SDK v9) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // ⚠️ Firebase-dan olgan sozlamalaringizni shu yerga qo'ying:
+    const firebaseConfig = {
+    apiKey: "AIzaSyDYnQBdOJ5buSX0QIVYFC1dQtIaaMBfRFA",
+    authDomain: "store-e2287.firebaseapp.com",
+    projectId: "store-e2287",
+    storageBucket: "store-e2287.firebasestorage.app",
+    messagingSenderId: "964983195151",
+    appId: "1:964983195151:web:235d83eb45601cb1f4c57a"
+  };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let products = [];
+
+    // Auth state check (Kirganlikni tekshirish)
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('adminContent').classList.remove('hidden');
+        document.getElementById('userEmailTag').textContent = user.email;
+        listenToProducts();
+      } else {
+        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('adminContent').classList.add('hidden');
+      }
+    });
+
+    // Login Form
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const pass = document.getElementById('loginPass').value;
+      const errEl = document.getElementById('loginError');
+
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+        errEl.classList.add('hidden');
+      } catch (err) {
+        errEl.textContent = "Email yoki parol xato!";
+        errEl.classList.remove('hidden');
+      }
+    });
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+    // Listen Products from Cloud Database
+    function listenToProducts() {
+      onSnapshot(collection(db, "products"), (snapshot) => {
+        products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderAdminTable();
+      });
+    }
+
+    function renderAdminTable() {
+      document.getElementById('statTotal').textContent = products.length;
+      const tbody = document.getElementById('adminTableBody');
+
+      if (products.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-gray-400">Tovarlar yo'q. Yangi tovar qo'shing.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = products.map(p => `
+        <tr class="hover:bg-gray-50/50 transition">
+          <td class="p-4 flex items-center gap-3">
+            <img src="${p.image}" class="w-10 h-10 object-cover rounded-lg border">
+            <div>
+              <p class="font-bold text-slate-800">${p.name}</p>
+              <p class="text-xs text-gray-400">${p.brand}</p>
+            </div>
+          </td>
+          <td class="p-4">
+            <span class="bg-gray-100 text-gray-700 text-xs px-2.5 py-1 rounded-full font-medium">${p.category}</span>
+          </td>
+          <td class="p-4 font-semibold text-slate-800">${Number(p.price).toLocaleString('uz-UZ')} UZS</td>
+          <td class="p-4 text-right space-x-2">
+            <button onclick="editProduct('${p.id}')" class="text-amber-600 hover:text-amber-700 p-2 font-medium text-xs"><i class="fa-solid fa-pen-to-square text-base"></i></button>
+            <button onclick="deleteProduct('${p.id}')" class="text-red-500 hover:text-red-700 p-2 font-medium text-xs"><i class="fa-solid fa-trash text-base"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Save/Update to Database
+    document.getElementById('productForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('editId').value;
+
+      const pData = {
+        name: document.getElementById('pName').value,
+        brand: document.getElementById('pBrand').value,
+        price: Number(document.getElementById('pPrice').value),
+        category: document.getElementById('pCategory').value,
+        image: document.getElementById('pImage').value,
+        description: document.getElementById('pDesc').value
+      };
+
+      try {
+        if (editId) {
+          await updateDoc(doc(db, "products", editId), pData);
+        } else {
+          await addDoc(collection(db, "products"), pData);
+        }
+        resetForm();
+      } catch (error) {
+        alert("Xatolik yuz berdi: " + error.message);
+      }
+    });
+
+    window.editProduct = function(id) {
+      const p = products.find(prod => prod.id === id);
+      if (!p) return;
+
+      document.getElementById('editId').value = p.id;
+      document.getElementById('pName').value = p.name;
+      document.getElementById('pBrand').value = p.brand;
+      document.getElementById('pPrice').value = p.price;
+      document.getElementById('pCategory').value = p.category;
+      document.getElementById('pImage').value = p.image;
+      document.getElementById('pDesc').value = p.description || '';
+
+      document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-500"></i> Tovarni Tahrirlash`;
+      document.getElementById('saveBtn').textContent = "O'zgarishlarni saqlash";
+      document.getElementById('cancelBtn').classList.remove('hidden');
+    };
+
+    window.deleteProduct = async function(id) {
+      if (confirm("Haqiqatan ham ushbu tovarni o'chirmoqchimisiz?")) {
+        await deleteDoc(doc(db, "products", id));
+      }
+    };
+
+    window.resetForm = function() {
+      document.getElementById('productForm').reset();
+      document.getElementById('editId').value = '';
+      document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-plus-circle text-amber-500"></i> Yangi Tovar Qo'shish`;
+      document.getElementById('saveBtn').textContent = "Saqlash";
+      document.getElementById('cancelBtn').classList.add('hidden');
+    };
+  </script>
+</body>
+</html>
