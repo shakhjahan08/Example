@@ -70,7 +70,7 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
       
       <!-- Top Stats -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-500">Jami Tovarlar</p>
@@ -80,27 +80,43 @@
         </div>
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-500">Yangi Buyurtmalar</p>
-            <h2 id="statOrders" class="text-3xl font-extrabold text-emerald-600 mt-1">0</h2>
+            <p class="text-sm font-medium text-gray-500">Faol Buyurtmalar</p>
+            <h2 id="statOrders" class="text-3xl font-extrabold text-amber-600 mt-1">0</h2>
           </div>
-          <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-bag-shopping"></i></div>
+          <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-clock"></i></div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-500">Topshirilgan</p>
+            <h2 id="statCompleted" class="text-3xl font-extrabold text-emerald-600 mt-1">0</h2>
+          </div>
+          <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-check-circle"></i></div>
         </div>
       </div>
 
-      <!-- ORDERS SECTION -->
+      <!-- ORDERS TABS & SECTION -->
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-slate-50">
-          <h3 class="font-bold text-slate-800"><i class="fa-solid fa-clipboard-list mr-2 text-amber-500"></i>Kelib tushgan buyurtmalar va mijozlar raqami</h3>
+        <div class="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50">
+          <h3 class="font-bold text-slate-800"><i class="fa-solid fa-clipboard-list mr-2 text-amber-500"></i>Buyurtmalar Boshqaruvi</h3>
+          
+          <!-- Tabs Selection -->
+          <div class="flex gap-1 bg-gray-200 p-1 rounded-xl text-xs font-semibold">
+            <button onclick="window.switchOrderTab('active')" id="tabActive" class="px-4 py-2 rounded-lg bg-white text-slate-900 shadow-sm transition">Jarayonda</button>
+            <button onclick="window.switchOrderTab('completed')" id="tabCompleted" class="px-4 py-2 rounded-lg text-gray-600 hover:text-slate-950 transition">Topshirilgan</button>
+            <button onclick="window.switchOrderTab('deleted')" id="tabDeleted" class="px-4 py-2 rounded-lg text-gray-600 hover:text-slate-950 transition">O'chirilganlar</button>
+          </div>
         </div>
+
         <div class="overflow-x-auto">
           <table class="w-full text-left text-sm">
             <thead class="bg-gray-100 text-gray-600 font-medium">
               <tr>
                 <th class="p-4">Mijoz Tel. Raqami</th>
-                <th class="p-4">Buyurtma qilingan tovarlar</th>
+                <th class="p-4">Tovar tafsilotlari</th>
                 <th class="p-4">Jami Summa</th>
+                <th class="p-4">Holati</th>
                 <th class="p-4">Sana / Vaqt</th>
-                <th class="p-4 text-right">Amal</th>
+                <th class="p-4 text-right">Amallar</th>
               </tr>
             </thead>
             <tbody id="ordersTableBody" class="divide-y divide-gray-100"></tbody>
@@ -185,6 +201,18 @@
     </main>
   </div>
 
+  <!-- CHEROIY NOTIFICATION MODAL (Dastur xabarlari uchun) -->
+  <div id="notifyModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+      <div id="notifyIconContainer" class="w-20 h-20 rounded-full flex items-center justify-center text-4xl mx-auto mb-5 shadow-inner">
+        <i id="notifyIcon" class="fa-solid fa-check"></i>
+      </div>
+      <h3 id="notifyTitle" class="text-2xl font-extrabold text-slate-900 mb-2">Bajarildi</h3>
+      <p id="notifyText" class="text-sm text-gray-600 mb-6 leading-relaxed">Amal muvaffaqiyatli bajarildi.</p>
+      <button onclick="window.closeNotifyModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-2xl transition">Tushunarli</button>
+    </div>
+  </div>
+
   <!-- Firebase Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -206,6 +234,7 @@
 
     let products = [];
     let orders = [];
+    let currentTab = 'active'; // active, completed, deleted
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -237,13 +266,11 @@
     document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 
     function listenToData() {
-      // Products listener
       onSnapshot(collection(db, "products"), (snapshot) => {
         products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderAdminTable();
       });
 
-      // Orders listener
       onSnapshot(collection(db, "orders"), (snapshot) => {
         orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderOrdersTable();
@@ -280,30 +307,151 @@
       `).join('');
     }
 
+    window.switchOrderTab = function(tab) {
+      currentTab = tab;
+      document.getElementById('tabActive').className = tab === 'active' ? 'px-4 py-2 rounded-lg bg-white text-slate-900 shadow-sm transition' : 'px-4 py-2 rounded-lg text-gray-600 hover:text-slate-950 transition';
+      document.getElementById('tabCompleted').className = tab === 'completed' ? 'px-4 py-2 rounded-lg bg-white text-slate-900 shadow-sm transition' : 'px-4 py-2 rounded-lg text-gray-600 hover:text-slate-950 transition';
+      document.getElementById('tabDeleted').className = tab === 'deleted' ? 'px-4 py-2 rounded-lg bg-white text-slate-900 shadow-sm transition' : 'px-4 py-2 rounded-lg text-gray-600 hover:text-slate-950 transition';
+      renderOrdersTable();
+    };
+
     function renderOrdersTable() {
-      document.getElementById('statOrders').textContent = orders.length;
+      // Statistika hisoblash
+      const activeCount = orders.filter(o => (o.status || 'Jarayonda') === 'Jarayonda').length;
+      const completedCount = orders.filter(o => o.status === 'Topshirilgan').length;
+      
+      document.getElementById('statOrders').textContent = activeCount;
+      document.getElementById('statCompleted').textContent = completedCount;
+
       const tbody = document.getElementById('ordersTableBody');
 
-      if (orders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-400">Hozircha buyurtmalar yo'q.</td></tr>`;
+      // Joriy tab bo'yicha filterlash
+      let filteredOrders = [];
+      if (currentTab === 'active') {
+        filteredOrders = orders.filter(o => (o.status || 'Jarayonda') === 'Jarayonda');
+      } else if (currentTab === 'completed') {
+        filteredOrders = orders.filter(o => o.status === 'Topshirilgan');
+      } else if (currentTab === 'deleted') {
+        filteredOrders = orders.filter(o => o.status === 'O\'chirilgan');
+      }
+
+      if (filteredOrders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400">Bu bo'limda buyurtmalar mavjud emas.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = orders.map(o => {
+      tbody.innerHTML = filteredOrders.map(o => {
         const itemsList = (o.items || []).map(i => `<div class="text-xs">• <b>${i.name}</b> (${i.brand}) - ${i.qty} ta</div>`).join('');
+        const status = o.status || 'Jarayonda';
+
+        let statusBadge = '';
+        if (status === 'Topshirilgan') {
+          statusBadge = `<span class="bg-emerald-100 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1 w-fit"><i class="fa-solid fa-check-circle"></i> Topshirilgan</span>`;
+        } else if (status === 'O\'chirilgan') {
+          statusBadge = `<span class="bg-red-100 text-red-600 text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1 w-fit"><i class="fa-solid fa-trash"></i> O'chirilgan</span>`;
+        } else {
+          statusBadge = `<span class="bg-amber-100 text-amber-700 text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1 w-fit"><i class="fa-solid fa-clock"></i> Jarayonda</span>`;
+        }
+
+        let actionButtons = '';
+        if (status === 'O\'chirilgan') {
+          actionButtons = `
+            <button onclick="window.restoreOrder('${o.id}')" title="Tiklash" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+              <i class="fa-solid fa-rotate-left mr-1"></i> Tiklash
+            </button>
+            <button onclick="window.permanentDelete('${o.id}')" title="Butunlay o'chirish" class="text-red-500 hover:text-red-700 p-2"><i class="fa-solid fa-xmark text-base"></i></button>
+          `;
+        } else {
+          const nextBtnText = status === 'Topshirilgan' ? 'Jarayonga' : 'Topshirish';
+          actionButtons = `
+            <button onclick="window.toggleOrderStatus('${o.id}', '${status}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+              <i class="fa-solid fa-rotate mr-1"></i> ${nextBtnText}
+            </button>
+            <button onclick="window.softDeleteOrder('${o.id}')" title="O'chirish" class="text-red-500 hover:text-red-700 p-2"><i class="fa-solid fa-trash"></i></button>
+          `;
+        }
+
         return `
           <tr class="hover:bg-gray-50 transition">
             <td class="p-4 font-bold text-slate-900"><i class="fa-solid fa-phone text-amber-500 mr-2"></i>${o.phone}</td>
             <td class="p-4 py-3">${itemsList}</td>
             <td class="p-4 font-bold text-emerald-600">${Number(o.total).toLocaleString('uz-UZ')} UZS</td>
+            <td class="p-4">${statusBadge}</td>
             <td class="p-4 text-xs text-gray-500">${o.createdAt || 'Noma\'lum'}</td>
-            <td class="p-4 text-right">
-              <button onclick="window.deleteOrder('${o.id}')" class="text-red-500 hover:text-red-700 p-2"><i class="fa-solid fa-trash"></i></button>
-            </td>
+            <td class="p-4 text-right space-x-1">${actionButtons}</td>
           </tr>
         `;
       }).join('');
     }
+
+    function showNotify(title, text, type = 'success') {
+      const modal = document.getElementById('notifyModal');
+      const titleEl = document.getElementById('notifyTitle');
+      const textEl = document.getElementById('notifyText');
+      const iconContainer = document.getElementById('notifyIconContainer');
+      const icon = document.getElementById('notifyIcon');
+
+      titleEl.textContent = title;
+      textEl.textContent = text;
+
+      if (type === 'success') {
+        iconContainer.className = "w-20 h-20 rounded-full flex items-center justify-center text-4xl mx-auto mb-5 shadow-inner bg-emerald-100 text-emerald-600";
+        icon.className = "fa-solid fa-circle-check";
+      } else if (type === 'info') {
+        iconContainer.className = "w-20 h-20 rounded-full flex items-center justify-center text-4xl mx-auto mb-5 shadow-inner bg-amber-100 text-amber-600";
+        icon.className = "fa-solid fa-circle-info";
+      } else {
+        iconContainer.className = "w-20 h-20 rounded-full flex items-center justify-center text-4xl mx-auto mb-5 shadow-inner bg-red-100 text-red-500";
+        icon.className = "fa-solid fa-triangle-exclamation";
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    window.closeNotifyModal = function() {
+      document.getElementById('notifyModal').classList.add('hidden');
+    };
+
+    window.toggleOrderStatus = async function(id, currentStatus) {
+      const newStatus = currentStatus === 'Topshirilgan' ? 'Jarayonda' : 'Topshirilgan';
+      try {
+        await updateDoc(doc(db, "orders", id), { status: newStatus });
+        showNotify("Muvaffaqiyatli!", `Buyurtma holati "${newStatus}" holatiga o'tkazildi.`, 'success');
+      } catch (err) {
+        showNotify("Xatolik", "Holatni o'zgartirishda xatolik yuz berdi: " + err.message, 'error');
+      }
+    };
+
+    window.softDeleteOrder = async function(id) {
+      if (confirm("Ushbu buyurtmani o'chirilganlar bo'limiga o'tkazmoqchimisiz?")) {
+        try {
+          await updateDoc(doc(db, "orders", id), { status: "O'chirilgan" });
+          showNotify("O'chirildi", "Buyurtma o'chirilganlar ro'yxatiga ko'chirildi.", 'info');
+        } catch (err) {
+          showNotify("Xatolik", "O'chirishda xatolik: " + err.message, 'error');
+        }
+      }
+    };
+
+    window.restoreOrder = async function(id) {
+      try {
+        await updateDoc(doc(db, "orders", id), { status: "Jarayonda" });
+        showNotify("Tiklandi", "Buyurtma qaytadan Jarayondagi buyurtmalarga qo'shildi.", 'success');
+      } catch (err) {
+        showNotify("Xatolik", "Tiklashda xatolik: " + err.message, 'error');
+      }
+    };
+
+    window.permanentDelete = async function(id) {
+      if (confirm("Bu buyurtmani bazadan butunlay o'chirib yubormoqchimisiz?")) {
+        try {
+          await deleteDoc(doc(db, "orders", id));
+          showNotify("Butunlay o'chirildi", "Buyurtma bazadan butunlay o'chirib tashlandi.", 'error');
+        } catch (err) {
+          showNotify("Xatolik", "O'chirishda xatolik: " + err.message, 'error');
+        }
+      }
+    };
 
     document.getElementById('productForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -320,12 +468,14 @@
       try {
         if (editId) {
           await updateDoc(doc(db, "products", editId), pData);
+          showNotify("Saqlandi", "Tovar ma'lumotlari muvaffaqiyatli yangilandi.");
         } else {
           await addDoc(collection(db, "products"), pData);
+          showNotify("Qo'shildi", "Yangi tovar muvaffaqiyatli qo'shildi.");
         }
         window.resetForm();
       } catch (error) {
-        alert("Xatolik: " + error.message);
+        showNotify("Xatolik", "Xatolik: " + error.message, 'error');
       }
     });
 
@@ -348,12 +498,7 @@
     window.deleteProduct = async function(id) {
       if (confirm("Haqiqatan ham ushbu tovarni o'chirmoqchimisiz?")) {
         await deleteDoc(doc(db, "products", id));
-      }
-    };
-
-    window.deleteOrder = async function(id) {
-      if (confirm("Ushbu buyurtmani o'chirmoqchimisiz?")) {
-        await deleteDoc(doc(db, "orders", id));
+        showNotify("O'chirildi", "Tovar muvaffaqiyatli o'chirildi.", 'error');
       }
     };
 
