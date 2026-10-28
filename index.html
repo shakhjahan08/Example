@@ -71,12 +71,28 @@
       </div>
       <div id="cartItems" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
       <div class="p-4 border-t border-gray-100 bg-gray-50 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Telefon raqamingiz *</label>
+          <input type="tel" id="customerPhone" placeholder="+998 90 123 45 67" class="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:border-amber-500 bg-white">
+        </div>
         <div class="flex justify-between text-lg font-bold text-slate-800">
           <span>Jami:</span>
           <span id="cartTotal">0 UZS</span>
         </div>
-        <button onclick="checkout()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl transition">Buyurtma berish</button>
+        <button onclick="window.checkout()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-amber-500/20">Buyurtma berish</button>
       </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS MODAL (Chiroyli tabriklash oynasi) -->
+  <div id="successModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl transform transition-all scale-100 animate-in fade-in zoom-in duration-200">
+      <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-5 shadow-inner">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <h3 class="text-2xl font-extrabold text-slate-900 mb-2">Rahmat!</h3>
+      <p class="text-sm text-gray-600 mb-6 leading-relaxed">Buyurtmangiz muvaffaqiyatli qabul qilindi. Tez orada operatorlarimiz siz bilan bog'lanishadi.</p>
+      <button onclick="window.closeSuccessModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-2xl transition">Asosiy sahifaga qaytish</button>
     </div>
   </div>
 
@@ -87,16 +103,16 @@
   <!-- Firebase Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyDYnQBdOJ5buSX0QIVYFC1dQtIaaMBfRFA",
-    authDomain: "store-e2287.firebaseapp.com",
-    projectId: "store-e2287",
-    storageBucket: "store-e2287.firebasestorage.app",
-    messagingSenderId: "964983195151",
-    appId: "1:964983195151:web:235d83eb45601cb1f4c57a"
-    };
+  apiKey: "AIzaSyDYnQBdOJ5buSX0QIVYFC1dQtIaaMBfRFA",
+  authDomain: "store-e2287.firebaseapp.com",
+  projectId: "store-e2287",
+  storageBucket: "store-e2287.firebasestorage.app",
+  messagingSenderId: "964983195151",
+  appId: "1:964983195151:web:235d83eb45601cb1f4c57a"
+};
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -109,9 +125,6 @@
     onSnapshot(collection(db, "products"), (snapshot) => {
       products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       renderProducts();
-    }, (error) => {
-      console.error("Firebase xatosi:", error);
-      document.getElementById('productsGrid').innerHTML = `<div class="col-span-full py-12 text-center text-red-400">Ma'lumotlarni yuklashda xatolik yuz berdi.</div>`;
     });
 
     function formatPrice(num) {
@@ -120,7 +133,6 @@
 
     function renderProducts() {
       const grid = document.getElementById('productsGrid');
-      
       const filtered = products.filter(p => {
         const matchCat = currentCategory === 'all' || p.category === currentCategory;
         const matchSearch = (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (p.brand || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -158,7 +170,6 @@
     window.addToCart = function(id) {
       const item = products.find(p => p.id === id);
       if (!item) return;
-      
       const existing = cart.find(c => c.id === id);
       if (existing) {
         existing.qty++;
@@ -188,7 +199,7 @@
           <img src="${item.image}" class="w-12 h-12 object-cover rounded-lg">
           <div class="flex-1 min-w-0">
             <h4 class="font-bold text-sm text-slate-800 truncate">${item.name}</h4>
-            <p class="text-xs text-gray-500">${formatPrice(item.price)}</p>
+            <p class="text-xs text-gray-500">${formatPrice(item.price)} x ${item.qty}</p>
           </div>
           <div class="flex items-center gap-2">
             <button onclick="window.changeQty('${item.id}', -1)" class="w-6 h-6 rounded bg-gray-200 text-slate-800 text-xs">-</button>
@@ -212,19 +223,44 @@
       updateCartUI();
     };
 
-    window.checkout = function() {
+    window.checkout = async function() {
       if (cart.length === 0) return;
-      alert("Xaridingiz uchun rahmat! Buyurtma qabul qilindi.");
-      cart = [];
-      updateCartUI();
-      document.getElementById('cartModal').classList.add('hidden');
+      const phone = document.getElementById('customerPhone').value.trim();
+      if (!phone) {
+        alert("Iltimos, telefon raqamingizni kiriting!");
+        return;
+      }
+
+      const totalSum = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+      try {
+        await addDoc(collection(db, "orders"), {
+          phone: phone,
+          items: cart.map(i => ({ name: i.name, brand: i.brand, qty: i.qty, price: i.price })),
+          total: totalSum,
+          createdAt: new Date().toLocaleString('uz-UZ')
+        });
+
+        cart = [];
+        document.getElementById('customerPhone').value = '';
+        updateCartUI();
+        document.getElementById('cartModal').classList.add('hidden');
+        
+        // Chiroyli oynani ochish
+        document.getElementById('successModal').classList.remove('hidden');
+      } catch (err) {
+        alert("Buyurtma berishda xatolik yuz berdi: " + err.message);
+      }
+    };
+
+    window.closeSuccessModal = function() {
+      document.getElementById('successModal').classList.add('hidden');
     };
 
     document.getElementById('cartBtn').addEventListener('click', () => document.getElementById('cartModal').classList.remove('hidden'));
     document.getElementById('closeCart').addEventListener('click', () => document.getElementById('cartModal').classList.add('hidden'));
     document.getElementById('searchInput').addEventListener('input', (e) => { searchQuery = e.target.value; renderProducts(); });
 
-    // Category Buttons Click Handler (Fixed)
     document.querySelectorAll('.cat-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         document.querySelectorAll('.cat-btn').forEach(b => {
