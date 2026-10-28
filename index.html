@@ -17,7 +17,6 @@
   <nav class="bg-slate-900 text-white sticky top-0 z-40 shadow-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
-        <!-- Logo -->
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-slate-900 font-bold text-xl">
             <i class="fa-solid fa-spray-can-sparkles"></i>
@@ -25,7 +24,6 @@
           <span class="font-bold text-xl tracking-wide bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent">LuxeParfum</span>
         </div>
         
-        <!-- Cart Button -->
         <div class="flex items-center">
           <button id="cartBtn" class="relative bg-slate-800 hover:bg-slate-700 text-amber-400 p-2.5 rounded-full transition">
             <i class="fa-solid fa-shopping-bag text-lg"></i>
@@ -51,10 +49,10 @@
         <input type="text" id="searchInput" placeholder="Atir nomi yoki brend..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-amber-500">
       </div>
       <div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0" id="categoryFilters">
-        <button data-cat="all" class="cat-btn active px-4 py-1.5 rounded-full text-sm font-medium bg-slate-900 text-white">Barchasi</button>
-        <button data-cat="Erkaklar" class="cat-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Erkaklar</button>
-        <button data-cat="Ayollar" class="cat-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Ayollar</button>
-        <button data-cat="Unisex" class="cat-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Unisex</button>
+        <button data-cat="all" class="cat-btn px-4 py-1.5 rounded-full text-sm font-medium bg-slate-900 text-white transition">Barchasi</button>
+        <button data-cat="Erkaklar" class="cat-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">Erkaklar</button>
+        <button data-cat="Ayollar" class="cat-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">Ayollar</button>
+        <button data-cat="Unisex" class="cat-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">Unisex</button>
       </div>
     </div>
 
@@ -86,20 +84,19 @@
     <p>&copy; 2026 LuxeParfum Onlayn Do'koni</p>
   </footer>
 
-  <!-- Firebase Script (SDK v9) -->
+  <!-- Firebase Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // ⚠️ Firebase-dan olgan sozlamalaringizni shu yerga qo'ying:
     const firebaseConfig = {
-    apiKey: "AIzaSyDYnQBdOJ5buSX0QIVYFC1dQtIaaMBfRFA",
-    authDomain: "store-e2287.firebaseapp.com",
-    projectId: "store-e2287",
-    storageBucket: "store-e2287.firebasestorage.app",
-    messagingSenderId: "964983195151",
-    appId: "1:964983195151:web:235d83eb45601cb1f4c57a"
-  };
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -109,10 +106,12 @@
     let currentCategory = 'all';
     let searchQuery = '';
 
-    // Real-time listener: Firebasedagi o'zgarishlar zudlik bilan ekranda ko'rinadi
     onSnapshot(collection(db, "products"), (snapshot) => {
       products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       renderProducts();
+    }, (error) => {
+      console.error("Firebase xatosi:", error);
+      document.getElementById('productsGrid').innerHTML = `<div class="col-span-full py-12 text-center text-red-400">Ma'lumotlarni yuklashda xatolik yuz berdi.</div>`;
     });
 
     function formatPrice(num) {
@@ -124,7 +123,7 @@
       
       const filtered = products.filter(p => {
         const matchCat = currentCategory === 'all' || p.category === currentCategory;
-        const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.brand.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchSearch = (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (p.brand || '').toLowerCase().includes(searchQuery.toLowerCase());
         return matchCat && matchSearch;
       });
 
@@ -147,7 +146,7 @@
             </div>
             <div class="flex items-center justify-between pt-3 border-t border-gray-50">
               <span class="font-bold text-slate-900">${formatPrice(p.price)}</span>
-              <button onclick="addToCart('${p.id}')" class="bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 p-2.5 rounded-xl transition">
+              <button onclick="window.addToCart('${p.id}')" class="bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 p-2.5 rounded-xl transition">
                 <i class="fa-solid fa-cart-plus"></i>
               </button>
             </div>
@@ -192,5 +191,51 @@
             <p class="text-xs text-gray-500">${formatPrice(item.price)}</p>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="changeQty('${item.id}', -1)" class="w-6 h-6 rounded bg-gray-200 text-slate-800 text-xs">-</button>
-            <span class="text-
+            <button onclick="window.changeQty('${item.id}', -1)" class="w-6 h-6 rounded bg-gray-200 text-slate-800 text-xs">-</button>
+            <span class="text-sm font-semibold">${item.qty}</span>
+            <button onclick="window.changeQty('${item.id}', 1)" class="w-6 h-6 rounded bg-gray-200 text-slate-800 text-xs">+</button>
+          </div>
+        </div>
+      `).join('');
+
+      const totalSum = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      totalEl.textContent = formatPrice(totalSum);
+    }
+
+    window.changeQty = function(id, delta) {
+      const item = cart.find(c => c.id === id);
+      if (!item) return;
+      item.qty += delta;
+      if (item.qty <= 0) {
+        cart = cart.filter(c => c.id !== id);
+      }
+      updateCartUI();
+    };
+
+    window.checkout = function() {
+      if (cart.length === 0) return;
+      alert("Xaridingiz uchun rahmat! Buyurtma qabul qilindi.");
+      cart = [];
+      updateCartUI();
+      document.getElementById('cartModal').classList.add('hidden');
+    };
+
+    document.getElementById('cartBtn').addEventListener('click', () => document.getElementById('cartModal').classList.remove('hidden'));
+    document.getElementById('closeCart').addEventListener('click', () => document.getElementById('cartModal').classList.add('hidden'));
+    document.getElementById('searchInput').addEventListener('input', (e) => { searchQuery = e.target.value; renderProducts(); });
+
+    // Category Buttons Click Handler (Fixed)
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.cat-btn').forEach(b => {
+          b.className = 'cat-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition';
+        });
+        const clickedBtn = e.currentTarget;
+        clickedBtn.className = 'cat-btn px-4 py-1.5 rounded-full text-sm font-medium bg-slate-900 text-white transition';
+        currentCategory = clickedBtn.dataset.cat;
+        renderProducts();
+      });
+    });
+  </script>
+</body>
+</html>
