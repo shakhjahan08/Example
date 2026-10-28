@@ -13,7 +13,7 @@
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
 
-  <!-- LOGIN SECTION (Agar admin tizimga kirmagan bo'lsa ko'rinadi) -->
+  <!-- LOGIN SECTION -->
   <div id="loginSection" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border border-gray-100">
       <div class="text-center mb-6">
@@ -42,7 +42,7 @@
     </div>
   </div>
 
-  <!-- ADMIN DASHBOARD (Faqat muvaffaqiyatli login qilinganda ko'rinadi) -->
+  <!-- ADMIN DASHBOARD -->
   <div id="adminContent" class="hidden flex-1 flex flex-col">
     <!-- Header -->
     <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-md">
@@ -68,6 +68,7 @@
     </header>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+      
       <!-- Top Stats -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
@@ -79,14 +80,35 @@
         </div>
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-500">Baza Holati</p>
-            <h2 class="text-lg font-bold text-emerald-600 mt-1"><i class="fa-solid fa-cloud-check mr-1"></i> Firebase Sinxron</h2>
+            <p class="text-sm font-medium text-gray-500">Yangi Buyurtmalar</p>
+            <h2 id="statOrders" class="text-3xl font-extrabold text-emerald-600 mt-1">0</h2>
           </div>
-          <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-shield-halved"></i></div>
+          <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-bag-shopping"></i></div>
         </div>
       </div>
 
-      <!-- Main Section: Form & Table -->
+      <!-- ORDERS SECTION -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+          <h3 class="font-bold text-slate-800"><i class="fa-solid fa-clipboard-list mr-2 text-amber-500"></i>Kelib tushgan buyurtmalar va mijozlar raqami</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-gray-100 text-gray-600 font-medium">
+              <tr>
+                <th class="p-4">Mijoz Tel. Raqami</th>
+                <th class="p-4">Buyurtma qilingan tovarlar</th>
+                <th class="p-4">Jami Summa</th>
+                <th class="p-4">Sana / Vaqt</th>
+                <th class="p-4 text-right">Amal</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Main Section: Form & Table for Products -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- Product Form -->
@@ -123,7 +145,7 @@
             </div>
 
             <div>
-              <label class="block text-xs font-semibold text-gray-600 mb-1">Rasm Yo'li (images/atirim.jpg)</label>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Rasm Yo'li (images/atir.jpg)</label>
               <input type="text" id="pImage" required placeholder="images/dior.jpg" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-amber-500">
             </div>
 
@@ -134,7 +156,7 @@
 
             <div class="flex gap-2 pt-2">
               <button type="submit" id="saveBtn" class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-xl transition text-sm">Saqlash</button>
-              <button type="button" id="cancelBtn" onclick="resetForm()" class="hidden px-4 bg-gray-200 hover:bg-gray-300 text-slate-700 font-semibold rounded-xl text-sm transition">Bekor qilish</button>
+              <button type="button" id="cancelBtn" onclick="window.resetForm()" class="hidden px-4 bg-gray-200 hover:bg-gray-300 text-slate-700 font-semibold rounded-xl text-sm transition">Bekor qilish</button>
             </div>
           </form>
         </div>
@@ -143,7 +165,6 @@
         <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div class="p-4 border-b border-gray-100 flex justify-between items-center">
             <h3 class="font-bold text-slate-800">Mavjud Atirlar Ro'yxati</h3>
-            <span class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-lock mr-1"></i> Xavfsiz baza</span>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
@@ -164,42 +185,40 @@
     </main>
   </div>
 
-  <!-- Firebase Script (SDK v9) -->
+  <!-- Firebase Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // ⚠️ Firebase-dan olgan sozlamalaringizni shu yerga qo'ying:
     const firebaseConfig = {
-    apiKey: "AIzaSyDYnQBdOJ5buSX0QIVYFC1dQtIaaMBfRFA",
-    authDomain: "store-e2287.firebaseapp.com",
-    projectId: "store-e2287",
-    storageBucket: "store-e2287.firebasestorage.app",
-    messagingSenderId: "964983195151",
-    appId: "1:964983195151:web:235d83eb45601cb1f4c57a"
-  };
+  apiKey: "AIzaSyDYnQBdOJ5buSX0QIVYFC1dQtIaaMBfRFA",
+  authDomain: "store-e2287.firebaseapp.com",
+  projectId: "store-e2287",
+  storageBucket: "store-e2287.firebasestorage.app",
+  messagingSenderId: "964983195151",
+  appId: "1:964983195151:web:235d83eb45601cb1f4c57a"
+};
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
     let products = [];
+    let orders = [];
 
-    // Auth state check (Kirganlikni tekshirish)
     onAuthStateChanged(auth, (user) => {
       if (user) {
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('adminContent').classList.remove('hidden');
         document.getElementById('userEmailTag').textContent = user.email;
-        listenToProducts();
+        listenToData();
       } else {
         document.getElementById('loginSection').classList.remove('hidden');
         document.getElementById('adminContent').classList.add('hidden');
       }
     });
 
-    // Login Form
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('loginEmail').value;
@@ -215,14 +234,19 @@
       }
     });
 
-    // Logout
     document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 
-    // Listen Products from Cloud Database
-    function listenToProducts() {
+    function listenToData() {
+      // Products listener
       onSnapshot(collection(db, "products"), (snapshot) => {
         products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderAdminTable();
+      });
+
+      // Orders listener
+      onSnapshot(collection(db, "orders"), (snapshot) => {
+        orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderOrdersTable();
       });
     }
 
@@ -238,7 +262,7 @@
       tbody.innerHTML = products.map(p => `
         <tr class="hover:bg-gray-50/50 transition">
           <td class="p-4 flex items-center gap-3">
-            <img src="${p.image}" class="w-10 h-10 object-cover rounded-lg border">
+            <img src="${p.image}" class="w-10 h-10 object-cover rounded-lg border" onerror="this.src='https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=600&q=80'">
             <div>
               <p class="font-bold text-slate-800">${p.name}</p>
               <p class="text-xs text-gray-400">${p.brand}</p>
@@ -249,18 +273,41 @@
           </td>
           <td class="p-4 font-semibold text-slate-800">${Number(p.price).toLocaleString('uz-UZ')} UZS</td>
           <td class="p-4 text-right space-x-2">
-            <button onclick="editProduct('${p.id}')" class="text-amber-600 hover:text-amber-700 p-2 font-medium text-xs"><i class="fa-solid fa-pen-to-square text-base"></i></button>
-            <button onclick="deleteProduct('${p.id}')" class="text-red-500 hover:text-red-700 p-2 font-medium text-xs"><i class="fa-solid fa-trash text-base"></i></button>
+            <button onclick="window.editProduct('${p.id}')" class="text-amber-600 hover:text-amber-700 p-2 font-medium text-xs"><i class="fa-solid fa-pen-to-square text-base"></i></button>
+            <button onclick="window.deleteProduct('${p.id}')" class="text-red-500 hover:text-red-700 p-2 font-medium text-xs"><i class="fa-solid fa-trash text-base"></i></button>
           </td>
         </tr>
       `).join('');
     }
 
-    // Save/Update to Database
+    function renderOrdersTable() {
+      document.getElementById('statOrders').textContent = orders.length;
+      const tbody = document.getElementById('ordersTableBody');
+
+      if (orders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-400">Hozircha buyurtmalar yo'q.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = orders.map(o => {
+        const itemsList = (o.items || []).map(i => `<div class="text-xs">• <b>${i.name}</b> (${i.brand}) - ${i.qty} ta</div>`).join('');
+        return `
+          <tr class="hover:bg-gray-50 transition">
+            <td class="p-4 font-bold text-slate-900"><i class="fa-solid fa-phone text-amber-500 mr-2"></i>${o.phone}</td>
+            <td class="p-4 py-3">${itemsList}</td>
+            <td class="p-4 font-bold text-emerald-600">${Number(o.total).toLocaleString('uz-UZ')} UZS</td>
+            <td class="p-4 text-xs text-gray-500">${o.createdAt || 'Noma\'lum'}</td>
+            <td class="p-4 text-right">
+              <button onclick="window.deleteOrder('${o.id}')" class="text-red-500 hover:text-red-700 p-2"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
     document.getElementById('productForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const editId = document.getElementById('editId').value;
-
       const pData = {
         name: document.getElementById('pName').value,
         brand: document.getElementById('pBrand').value,
@@ -276,16 +323,15 @@
         } else {
           await addDoc(collection(db, "products"), pData);
         }
-        resetForm();
+        window.resetForm();
       } catch (error) {
-        alert("Xatolik yuz berdi: " + error.message);
+        alert("Xatolik: " + error.message);
       }
     });
 
     window.editProduct = function(id) {
       const p = products.find(prod => prod.id === id);
       if (!p) return;
-
       document.getElementById('editId').value = p.id;
       document.getElementById('pName').value = p.name;
       document.getElementById('pBrand').value = p.brand;
@@ -302,6 +348,12 @@
     window.deleteProduct = async function(id) {
       if (confirm("Haqiqatan ham ushbu tovarni o'chirmoqchimisiz?")) {
         await deleteDoc(doc(db, "products", id));
+      }
+    };
+
+    window.deleteOrder = async function(id) {
+      if (confirm("Ushbu buyurtmani o'chirmoqchimisiz?")) {
+        await deleteDoc(doc(db, "orders", id));
       }
     };
 
